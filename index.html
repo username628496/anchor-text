@@ -1,0 +1,164 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Anchor Link Tool - FINAL</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body.dark { background-color: #1f2937; color: #e5e7eb; }
+    .dark textarea, .dark .output-box, .dark .history-box { background-color: #374151; color: #e5e7eb; }
+    .history-entry { border-bottom: 1px solid #ddd; padding: 5px 0; }
+    .toggle-details { cursor: pointer; color: #3b82f6; font-size: 0.9rem; }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800 transition-all">
+  <header class="bg-blue-700 text-white px-6 py-4 flex justify-between items-center">
+    <h1 class="text-xl font-bold">🔗 Anchor Text Convertor</h1>
+    <button onclick="toggleDarkMode()" class="bg-white text-blue-700 px-4 py-1 rounded">☾☼</button>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-6">
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div>
+        <label class="font-semibold block mb-1">Nhập Anchors</label>
+        <textarea id="anchorInput" class="w-full h-48 p-3 border rounded font-mono"
+         oninput="updateLineNumbers('anchorInput')" onpaste="handlePaste(event, 'anchorInput')"></textarea>
+      </div>
+      <div>
+        <label class="font-semibold block mb-1">Nhập URLs</label>
+        <textarea id="urlInput" class="w-full h-48 p-3 border rounded font-mono"
+         oninput="updateLineNumbers('urlInput')" onpaste="handlePaste(event, 'urlInput')"></textarea>
+      </div>
+    </div>
+
+    <label class="inline-flex items-center mb-4">
+      <input type="checkbox" id="targetBlank" class="mr-2" />
+      <span>Thêm <code>target="_blank"</code></span>
+    </label>
+
+    <div class="space-x-2 mb-6">
+      <button onclick="generateLinks()" class="bg-blue-600 text-white px-4 py-2 rounded">Tạo Anchor Text</button>
+      <button onclick="exportHtml()" class="bg-green-600 text-white px-4 py-2 rounded">Xuất HTML</button>
+    </div>
+
+    <p id="warningMessage" class="text-red-600 font-semibold mb-4"></p>
+
+    <section class="mb-6">
+      <h3 class="text-lg font-semibold mb-2">Anchor Text Kiểu 1"</h3>
+      <div class="output-box border p-3 rounded overflow-x-auto whitespace-nowrap bg-white" id="anchorWithPipes"></div>
+      <button onclick="copyDivContent('anchorWithPipes')" class="mt-2 px-3 py-1 bg-gray-800 text-white rounded">Copy</button>
+    </section>
+
+    <section class="mb-6">
+      <h3 class="text-lg font-semibold mb-2">Anchor Text Kiểu 2</h3>
+      <div class="output-box border p-3 rounded overflow-x-auto whitespace-nowrap bg-white" id="anchorWithSpaces"></div>
+      <button onclick="copyDivContent('anchorWithSpaces')" class="mt-2 px-3 py-1 bg-gray-800 text-white rounded">Copy</button>
+    </section>
+
+    <section class="mb-10">
+      <h3 class="text-lg font-semibold mb-2">🕘 Lịch Sử Thao Tác</h3>
+      <div id="historyLog" class="history-box border p-3 rounded bg-white text-sm"></div>
+    </section>
+  </main>
+
+  <footer class="bg-gray-800 text-white text-center py-4">
+    П и тер © 2025
+  </footer>
+
+<script>
+  let history = [];
+
+  function updateLineNumbers(id) {
+    const textarea = document.getElementById(id);
+    const lines = textarea.value.split("\\n");
+    for (let i = 0; i < lines.length; i++) {
+      lines[i] = lines[i].replace(/^\\d+\\.\\s*/, "");
+      lines[i] = (i + 1) + ". " + lines[i];
+    }
+    textarea.value = lines.join("\\n");
+  }
+
+  function handlePaste(event, id) {
+    event.preventDefault();
+    const pasteData = (event.clipboardData || window.clipboardData).getData('text');
+    const lines = pasteData.split("\\n");
+    const numbered = lines.map((line, index) => (index + 1) + ". " + line);
+    document.getElementById(id).value = numbered.join("\\n");
+  }
+
+  function generateLinks() {
+    const anchors = document.getElementById("anchorInput").value
+      .trim().split("\\n").map(x => x.replace(/^\\d+\\.\\s*/, "").trim());
+    const urls = document.getElementById("urlInput").value
+      .trim().split("\\n").map(x => x.replace(/^\\d+\\.\\s*/, "").trim());
+    const targetBlank = document.getElementById("targetBlank").checked;
+
+    const minLength = Math.min(anchors.length, urls.length);
+    document.getElementById("warningMessage").innerText = anchors.length !== urls.length 
+      ? `⚠️ Anchor: ${anchors.length}, URL: ${urls.length}. Xử lý ${minLength} dòng.` : "";
+
+    let pipeLinks = "", spaceLinks = "";
+    for (let i = 0; i < minLength; i++) {
+      const tag = `<a href="${urls[i]}"${targetBlank ? ' target="_blank"' : ''}>${anchors[i]}</a>`;
+      pipeLinks += tag + (i < minLength - 1 ? " | " : "");
+      spaceLinks += tag + " ";
+    }
+
+    document.getElementById("anchorWithPipes").innerHTML = pipeLinks.trim();
+    document.getElementById("anchorWithSpaces").innerHTML = spaceLinks.trim();
+
+    const time = new Date().toLocaleTimeString();
+    const entry = { time, anchors: anchors.slice(0, minLength) };
+    history.unshift(entry);
+    if (history.length > 20) history.pop();
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const container = document.getElementById("historyLog");
+    container.innerHTML = "";
+    history.forEach((entry, index) => {
+      const div = document.createElement("div");
+      div.className = "history-entry";
+      const toggleId = `detail-${index}`;
+      div.innerHTML = `<strong>${entry.time}</strong> - ${entry.anchors.length} anchor 
+        <span class="toggle-details" onclick="toggleDetails('${toggleId}')">[Xem chi tiết]</span>
+        <div id="${toggleId}" style="display:none; margin-top:5px;">• ${entry.anchors.join(", ")}</div>`;
+      container.appendChild(div);
+    });
+  }
+
+  function toggleDetails(id) {
+    const el = document.getElementById(id);
+    el.style.display = el.style.display === "none" ? "block" : "none";
+  }
+
+  function copyDivContent(id) {
+    const range = document.createRange();
+    range.selectNode(document.getElementById(id));
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    document.execCommand("copy");
+    window.getSelection().removeAllRanges();
+    alert("Đã copy!");
+  }
+
+  function exportHtml() {
+    const html = document.getElementById("anchorWithPipes").innerHTML + "<br><br>" +
+                 document.getElementById("anchorWithSpaces").innerHTML;
+    const blob = new Blob(["<html><body>" + html + "</body></html>"], { type: "text/html" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "anchor-links.html";
+    link.click();
+  }
+
+  function toggleDarkMode() {
+    document.body.classList.toggle("dark");
+  }
+</script>
+
+</body>
+</html>
