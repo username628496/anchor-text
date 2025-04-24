@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -83,11 +82,14 @@
   function handlePaste(event, id) {
     event.preventDefault();
     const pasteData = (event.clipboardData || window.clipboardData).getData('text');
-    const lines = pasteData.split("\\n");
+    const lines = pasteData.split("\n");
     const numbered = lines.map((line, index) => (index + 1) + ". " + line);
-    document.getElementById(id).value = numbered.join("\\n");
-  }
+    document.getElementById(id).value = numbered.join("\n");
 
+    // Gọi lại hàm updateLineNumbers để đảm bảo định dạng chuẩn
+    updateLineNumbers(id);
+  }
+  
   function generateLinks() {
     const anchors = document.getElementById("anchorInput").value
       .trim().split("\\n").map(x => x.replace(/^\\d+\\.\\s*/, "").trim());
