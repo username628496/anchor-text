@@ -83,11 +83,14 @@
     event.preventDefault();
     const pasteData = (event.clipboardData || window.clipboardData).getData('text');
     const lines = pasteData.split("\n");
-    const numbered = lines.map((line, index) => (index + 1) + ". " + line);
-    document.getElementById(id).value = numbered.join("\n");
 
-    // Gọi lại hàm updateLineNumbers để đảm bảo định dạng chuẩn
-    updateLineNumbers(id);
+    // Loại bỏ số thứ tự nếu có sẵn trong dữ liệu paste vào
+    const cleanedLines = lines.map(line => line.replace(/^\d+\.\s*/, "").trim());
+
+    // Đánh số lại chuẩn
+    const numbered = cleanedLines.map((line, index) => (index + 1) + ". " + line);
+
+    document.getElementById(id).value = numbered.join("\n");
   }
   
   function generateLinks() {
