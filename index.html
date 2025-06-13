@@ -340,23 +340,45 @@
     // Cập nhật lại lịch sử thao tác
     renderHistory();
   }
-  // Hàm copy nội dung HTML của div chứa anchor text vào clipboard
+  // Hàm copy nội dung HTML của div chứa anchor text vào clipboard, hỗ trợ cả text/html và text/plain
   function copyDivContent(id) {
-    const html = document.getElementById(id).innerHTML;
+    const element = document.getElementById(id);
+    const html = element.innerHTML;
+    const text = element.innerText;
+
     if (!html || html.trim() === "") {
-      Swal.fire({ icon: "warning", title: "Không có nội dung", text: "Chưa có nội dung để sao chép!", confirmButtonColor: "#dc8863" });
+      Swal.fire({
+        icon: "warning",
+        title: "Không có nội dung",
+        text: "Chưa có nội dung để sao chép!",
+        confirmButtonColor: "#dc8863"
+      });
       return;
     }
-    const blob = new Blob([html], { type: "text/html" });
-    const item = new ClipboardItem({ "text/html": blob });
-    navigator.clipboard.write([item]).then(() => {
-      // Đếm số anchor đã copy để hiển thị thông báo
+
+    const blobHtml = new Blob([html], { type: "text/html" });
+    const blobText = new Blob([text], { type: "text/plain" });
+
+    const clipboardItem = new ClipboardItem({
+      "text/html": blobHtml,
+      "text/plain": blobText
+    });
+
+    navigator.clipboard.write([clipboardItem]).then(() => {
       const count = html.split("<a ").length - 1;
       const popup = document.createElement("div");
       popup.innerText = `Đã copy ${count} anchor text!`;
       popup.className = "fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded shadow-lg animate-bounce";
       document.body.appendChild(popup);
       setTimeout(() => popup.remove(), 2000);
+    }).catch(err => {
+      console.error("Lỗi copy clipboard:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Không thể sao chép nội dung.",
+        confirmButtonColor: "#dc8863"
+      });
     });
   }
 </script>
